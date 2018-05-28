@@ -36,7 +36,6 @@ public class ClientHandler implements Runnable {
                     clientSocket.getOutputStream(), Charset.forName("UTF-8")));
 
             Server.clientSockets.put(clientSocket, bufferedWriter);
-            System.out.println("ELEM: " + Server.clientSockets.size());
 
             lastTimeAlive = System.currentTimeMillis();
             new Thread(new HeartBeatChecker()).start();
