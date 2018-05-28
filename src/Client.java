@@ -7,7 +7,7 @@ public class Client {
 
     private Socket socket;
     private BufferedReader socketReader = null;
-    private String clientName;
+    private String sAddress;
 
     public void startClient() {
 
@@ -16,9 +16,6 @@ public class Client {
 
         Scanner sc = new Scanner(System.in);
 
-        System.out.println("Enter your name");
-        clientName = sc.nextLine();
-
         System.out.println("Enter server ip");
         host = sc.nextLine();
 
@@ -26,8 +23,11 @@ public class Client {
         port = sc.nextInt();
 
         try {
+
             this.socket = new Socket(host, port);
+            sAddress = socket.getLocalSocketAddress().toString();
             new Thread(new HeartBeat()).start();
+
         } catch (IOException e) {
             System.out.println("Connection error");
             System.exit(0);
@@ -46,12 +46,26 @@ public class Client {
             bw = new BufferedWriter(new OutputStreamWriter(
                     socket.getOutputStream(), Charset.forName("UTF-8")));
 
+            bw.write("#message#" + "\nClient " + sAddress + " connected\n");
+            bw.newLine();
+            bw.flush();
+
             new Thread(new MessageReceiver()).start();
 
             String message;
+            String tmp[];
             while ((message = br.readLine()) != null) {
 
-                bw.write("#message#" + clientName + ": " + message);
+                if (message.startsWith("SENDTO")) {
+
+                    message = message.replace("SENDTO", "").trim();
+                    tmp = message.split(" ", 2);
+                    bw.write("#directed_message#" + tmp[0] + "#separator#" + tmp[1]);
+
+                } else {
+                    bw.write("#message#" + sAddress + " writes: " + message);
+                }
+
                 bw.newLine();
                 bw.flush();
             }
@@ -101,7 +115,7 @@ public class Client {
                 String receivedMessage;
                 while ((receivedMessage = socketReader.readLine()) != null) {
 
-                    if (!receivedMessage.startsWith(clientName)) {
+                    if (!receivedMessage.startsWith(sAddress)) {
                         System.out.println(receivedMessage);
                     }
                 }
