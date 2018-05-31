@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.Charset;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class Client {
@@ -11,30 +12,37 @@ public class Client {
 
     public void startClient() {
 
-        String host;
-        int port;
-
-        Scanner sc = new Scanner(System.in);
-
-        System.out.println("Enter server ip");
-        host = sc.nextLine();
-
-        System.out.println("Enter port");
-        port = sc.nextInt();
+        String host = null;
+        int port = 0;
 
         try {
+
+            Scanner sc = new Scanner(System.in);
+
+            System.out.println("Enter server ip");
+            host = sc.nextLine();
+
+            System.out.println("Enter port");
+            port = sc.nextInt();
 
             this.socket = new Socket(host, port);
             sAddress = socket.getLocalSocketAddress().toString();
             new Thread(new HeartBeat()).start();
 
         } catch (IOException e) {
+
             System.out.println("Connection error");
             System.exit(0);
+
+        } catch (InputMismatchException ex) {
+
+            System.out.println("Incorrect input");
         }
 
+        System.out.println("\033[H\033[2J");
+        System.out.flush();
         System.out.println("Connected to " + host + ":" + port);
-        System.out.println("Your ip: " + Util.getLocalIp() + '\n');
+        System.out.println("Your address: " + sAddress + '\n');
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         BufferedWriter bw = null;
@@ -46,7 +54,7 @@ public class Client {
             bw = new BufferedWriter(new OutputStreamWriter(
                     socket.getOutputStream(), Charset.forName("UTF-8")));
 
-            bw.write("#message#" + "\nClient " + sAddress + " connected\n");
+            bw.write("#message#" + "Client " + sAddress + " connected");
             bw.newLine();
             bw.flush();
 
@@ -54,24 +62,37 @@ public class Client {
 
             String message;
             String tmp[];
+            String words[];
             while ((message = br.readLine()) != null) {
 
                 if (message.startsWith("SENDTO")) {
 
                     message = message.replace("SENDTO", "").trim();
+
+                    words = message.split("\\s+");
+                    if (message.replace("\n", "").isEmpty()
+                            || words.length != 2) {
+
+                        continue;
+                    }
+
                     tmp = message.split(" ", 2);
                     bw.write("#directed_message#" + tmp[0] + "#separator#" + tmp[1]);
 
                 } else {
-                    bw.write("#message#" + sAddress + " writes: " + message);
+
+                    if (!message.replace("\n", "").trim().equals("")) {
+                        bw.write("#message#" + sAddress + " writes: " + message);
+                    }
                 }
 
                 bw.newLine();
                 bw.flush();
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Something gone wrong");
+
         }  finally {
             try {
                 if (bw != null) {
@@ -115,9 +136,11 @@ public class Client {
                 String receivedMessage;
                 while ((receivedMessage = socketReader.readLine()) != null) {
 
-                    if (!receivedMessage.startsWith(sAddress)) {
-                        System.out.println(receivedMessage);
+                    if (receivedMessage.contains(sAddress)) {
+                        continue;
                     }
+
+                    System.out.println('\n' + receivedMessage);
                 }
 
 

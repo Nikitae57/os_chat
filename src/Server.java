@@ -23,13 +23,11 @@ public class Server {
             ServerSocket serverSocket = new ServerSocket(port);
             Socket socket;
 
-            ClientHandler clientHandler;
+            ClientHandler clientHandler = null;
             while (true) {
 
                 socket = serverSocket.accept();
                 clientHandler = new ClientHandler(socket);
-
-                System.out.println("\nClient " + socket.getRemoteSocketAddress() + " connected\n");
 
                 new Thread(clientHandler).start();
 

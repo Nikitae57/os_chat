@@ -38,26 +38,43 @@ public class ClientHandler implements Runnable {
             new Thread(new HeartBeatChecker()).start();
 
             String message;
-            String directedMsg[] = null;
+            String directedMsg[];
             while ((message = bufferedReader.readLine()) != null) {
                 lastTimeAlive = System.currentTimeMillis();
 
                 if (message.startsWith("#message#")) {
 
+                    if (message.replace("\n", "").
+                            trim().equals("")) {
+
+                        System.out.println("HEY");
+
+                        continue;
+                    }
+
                     message = message.replace("#message#", "");
+
                     System.out.println(message);
                     writeToEveryOne(message);
 
                 } else if (message.startsWith("#directed_message#")) {
 
-                    System.out.println("NOTHEY");
+                    if (message.trim().replace("\n", "").
+                            equalsIgnoreCase("")) {
+
+                        continue;
+                    }
 
                     message = message.replace("#directed_message#", "");
                     directedMsg = message.split("#separator#");
 
-                    System.out.println("NOTHEY" + directedMsg[0] + " " + directedMsg[1]);
-                    writeToPerson(directedMsg);
+                    if (directedMsg[1].trim().replace("\n", "").equals("")
+                            || directedMsg[1] == null) {
 
+                        continue;
+                    }
+
+                    writeToPerson(directedMsg);
                 }
             }
 
@@ -69,7 +86,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private synchronized void writeToEveryOne(String message) {
+    public synchronized void writeToEveryOne(String message) {
 
         Map.Entry pair;
         BufferedWriter bw;
@@ -102,16 +119,10 @@ public class ClientHandler implements Runnable {
                 pair = (Map.Entry) iterator.next();
                 bw = (BufferedWriter) pair.getValue();
 
-                System.out.println("REMOTE SOCKET" + ((Socket) pair.getKey()).
-                        getRemoteSocketAddress());
-
-
-
                 if (((Socket) pair.getKey()).
                         getRemoteSocketAddress().toString().
-                        contains(msg[0])) {
-
-                    System.out.println("YES");
+                        replace("/", "").
+                        equals(msg[0])) {
 
                     bw.write(msg[1]);
                     bw.newLine();
