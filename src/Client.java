@@ -1,4 +1,5 @@
 import java.io.*;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.util.InputMismatchException;
@@ -9,6 +10,7 @@ public class Client {
     private Socket socket;
     private BufferedReader socketReader = null;
     private String sAddress;
+    private BigInteger publicExponent, modulus;
 
     public void startClient() {
 
@@ -51,10 +53,16 @@ public class Client {
             socketReader = new BufferedReader(new InputStreamReader(
                     socket.getInputStream(), Charset.forName("UTF-8")));
 
+            publicExponent = new BigInteger(socketReader.readLine());
+            modulus = new BigInteger(socketReader.readLine());
+
             bw = new BufferedWriter(new OutputStreamWriter(
                     socket.getOutputStream(), Charset.forName("UTF-8")));
 
-            bw.write("#message#" + "Client " + sAddress + " connected");
+            String encryptedFirstMsg = RSA.encrypt("aClient "
+                    + sAddress + " connected", publicExponent, modulus);
+
+            bw.write("#message#" + encryptedFirstMsg);
             bw.newLine();
             bw.flush();
 
@@ -63,6 +71,7 @@ public class Client {
             String message;
             String tmp[];
             String words[];
+            String encrypted;
             while ((message = br.readLine()) != null) {
 
                 if (message.startsWith("SENDTO")) {
@@ -77,12 +86,18 @@ public class Client {
                     }
 
                     tmp = message.split(" ", 2);
-                    bw.write("#directed_message#" + tmp[0] + "#separator#" + tmp[1]);
+                    encrypted = RSA.encrypt('a' + tmp[1], publicExponent, modulus);
+                    bw.write("#directed_message#" + tmp[0] + "#separator#" + encrypted);
 
                 } else {
 
                     if (!message.replace("\n", "").trim().equals("")) {
-                        bw.write("#message#" + sAddress + " writes: " + message);
+
+                        encrypted = RSA.encrypt('a' + sAddress + " writes: "
+                                + message, publicExponent, modulus);
+
+                        bw.write("#message#" + encrypted);
+                        System.out.println("Encrypted: " + encrypted);
                     }
                 }
 

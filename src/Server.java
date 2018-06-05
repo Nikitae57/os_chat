@@ -1,4 +1,5 @@
 import java.io.*;
+import java.math.BigInteger;
 import java.security.*;
 import java.util.*;
 import java.net.*;
@@ -6,10 +7,16 @@ import java.net.*;
 public class Server {
 
     public static Map<Socket, BufferedWriter> clientSockets;
+    public static String privateExponent, publicExponent, modulus;
 
     public void startServer() {
 
         clientSockets = new HashMap<Socket, BufferedWriter>();
+
+        RSA rsa = new RSA();
+        privateExponent = rsa.getPrivateExponent();
+        publicExponent = rsa.getPublicExponent();
+        modulus = rsa.getModulus();
 
         System.out.println("Enter port");
         int port = new Scanner(System.in).nextInt();

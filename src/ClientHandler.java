@@ -11,13 +11,16 @@ public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private SocketAddress sAddress;
     private long lastTimeAlive;
+    private BigInteger privateExponent, modulus;
 
     public ClientHandler(Socket socket) {
 
         clientSocket = socket;
         sAddress = socket.getRemoteSocketAddress();
-    }
+        privateExponent = new BigInteger(Server.privateExponent);
+        modulus = new BigInteger(Server.modulus);
 
+    }
 
     @Override
     public void run() {
@@ -32,6 +35,14 @@ public class ClientHandler implements Runnable {
                     new OutputStreamWriter(
                     clientSocket.getOutputStream(), Charset.forName("UTF-8")));
 
+            bufferedWriter.write(Server.publicExponent);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+
+            bufferedWriter.write(Server.modulus);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+
             Server.clientSockets.put(clientSocket, bufferedWriter);
 
             lastTimeAlive = System.currentTimeMillis();
@@ -39,6 +50,8 @@ public class ClientHandler implements Runnable {
 
             String message;
             String directedMsg[];
+            String decrypted;
+            StringBuilder sb;
             while ((message = bufferedReader.readLine()) != null) {
                 lastTimeAlive = System.currentTimeMillis();
 
@@ -47,15 +60,18 @@ public class ClientHandler implements Runnable {
                     if (message.replace("\n", "").
                             trim().equals("")) {
 
-                        System.out.println("HEY");
-
                         continue;
                     }
 
                     message = message.replace("#message#", "");
+                    System.out.println("\nEncrypted: " + message);
 
-                    System.out.println(message);
-                    writeToEveryOne(message);
+                    decrypted = RSA.decrypt(message, privateExponent, modulus);
+                    sb = new StringBuilder(decrypted);
+                    sb.deleteCharAt(0);
+
+                    System.out.println("Decrypted: " + sb);
+                    writeToEveryOne(sb.toString());
 
                 } else if (message.startsWith("#directed_message#")) {
 
@@ -66,7 +82,9 @@ public class ClientHandler implements Runnable {
                     }
 
                     message = message.replace("#directed_message#", "");
-                    directedMsg = message.split("#separator#");
+
+                    decrypted = RSA.decrypt(message, privateExponent, modulus);
+                    directedMsg = decrypted.split("#separator#");
 
                     if (directedMsg[1].trim().replace("\n", "").equals("")
                             || directedMsg[1] == null) {
@@ -74,6 +92,8 @@ public class ClientHandler implements Runnable {
                         continue;
                     }
 
+                    System.out.println("Encrypted: " + message);
+                    System.out.println("Decrypted: " + directedMsg[1]);
                     writeToPerson(directedMsg);
                 }
             }
