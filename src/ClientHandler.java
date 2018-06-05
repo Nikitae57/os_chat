@@ -83,8 +83,10 @@ public class ClientHandler implements Runnable {
 
                     message = message.replace("#directed_message#", "");
 
-                    decrypted = RSA.decrypt(message, privateExponent, modulus);
-                    directedMsg = decrypted.split("#separator#");
+                    directedMsg = message.split("#separator#");
+                    directedMsg[1] = RSA.decrypt(directedMsg[1], privateExponent, modulus);
+                    sb = new StringBuilder(directedMsg[1]);
+                    sb.deleteCharAt(0);
 
                     if (directedMsg[1].trim().replace("\n", "").equals("")
                             || directedMsg[1] == null) {
@@ -93,8 +95,9 @@ public class ClientHandler implements Runnable {
                     }
 
                     System.out.println("Encrypted: " + message);
-                    System.out.println("Decrypted: " + directedMsg[1]);
+                    System.out.println("Decrypted: " + directedMsg[0] + " " + sb.toString());
                     writeToPerson(directedMsg);
+
                 }
             }
 
@@ -132,6 +135,9 @@ public class ClientHandler implements Runnable {
         Map.Entry pair;
         BufferedWriter bw;
         Iterator iterator = Server.clientSockets.entrySet().iterator();
+        StringBuilder sb = new StringBuilder(msg[1]);
+        sb.deleteCharAt(0);
+        msg[1] = sb.toString();
 
         try {
             while (iterator.hasNext()) {
